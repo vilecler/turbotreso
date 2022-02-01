@@ -1,0 +1,245 @@
+@startuml
+
+title Turbo Treso
+
+abstract class Compte_component <<abstract>>{
+  #QString c_nom {unique}
+  #float c_solde
+  #Date& c_Date_Rapprochement
+  #bool c_estVirtuel
+  +Compte_component(QString nom, Compte_component* parent, bool estVirtuel = 1, Date& Date_de_rapprochement = dateInit)
+  +Compte_component()
+  +void setParent(Compte_component* parent)
+  +Compte_component* getParent()
+  +void setNom(QString nom)
+  +QString getNom()
+  +bool getVirtuel()
+  +void setDate_Rapprochement(Date& d1)
+  +Date getDate_Rapprochement()
+  +void ajouter(Compte_component* compteajout)
+  +void supprimer(Compte_component* Compte_component)
+  +bool contient(QString nom)
+  +bool creerCompte(QString nomCompteParent, QString nomNvCompte, bool estVirtuel = 1, QString type = "", Date& Date_de_rapprochement = dateInit)
+  +bool affichageQdebug()
+  +std::list<std::tuple<QString, QString>> affichageList()
+  +bool hasSon()
+  +std::list<Compte_component*> getFils()
+  +bool resetname(QString ancienNom, QString nvNom)
+  +float setSolde(float nvSolde)
+  +{abstract} float getSolde()
+  +{abstract} float getSoldeLive()
+  +{abstract} Compte_component& copie(float solde)
+  +void debiter(const float m)
+  +void crediter(const float m)
+  +void effacer()
+  +Compte_component* localiser(QString nom)
+  +bool parcoursPassifs()
+}
+
+class TransactionManager <<singleton>>{
+  -QString nomSauvegarde
+  -list<Transaction> transactions
+  -QString filename
+  -TransactionManager()
+  +void detruire();
+  +Date genererDateTest();
+  +void save();
+  +void saveUnder();
+  +void saveTriplets(Triplet trip, QDomDocument docTransac, QDomElement rootTransac)
+  +void saveTransactions(Transaction t, QDomDocument docTransac, QDomElement rootTransac)
+  +list<Triplet*> getElements(QDomElement root, QString tag, QString att)
+  +void load()
+  +float getSoldeLive(Compte_component& c)
+  +float getSoldeLive(Compte_component& c, Date& d1)
+  +float getSoldeLive(Compte_component& c, Date& d1, Date& d2)
+  +void setSoldeInitial(Compte_component& nouvCompte, Compte_component& comptePropre, float solde = 0)
+  +std::list<std::tuple<QString, float, QString>> Bilan(Compte_component& c, Date& date, std::list<std::tuple<QString, float, QString>> listeInit);
+  +std::list<list<std::tuple<QString, float, QString>>> Bilan_general(Date& date)
+  +std::list<std::tuple<QString, float, QString>>releve(Compte_component& c, Date& date_debut, Date& date_fin,list<std::tuple<QString, float, QString>> liste)
+  +std::list<list<std::tuple<QString, float, QString>>> resultat(Date& date_debut, Date& date_fin)
+  +bool cloture()
+  +void Rapprochement(Compte_component& c )
+  +static TransactionManager& getTransactionManager()
+  +list<Transaction> getTransactions()
+  +void ajouterTransaction(Date& date, QString& id, QString& titre, list<Triplet*> triplets)
+  +void ajouterPointeur(Transaction* transaction)
+  +void afficherTransactions(ostream& f)
+  +void figerTransactions()
+}
+
+class Iterator{
+  -TransactionManager& instance
+  -list<Transaction>::iterator it
+  +Iterator()
+  +bool isDone()
+  +void next()
+  +Transaction& currentItem()
+  +Transaction& currentItemConst()
+}
+
+note top : Doit etre friend class de TransactionManager
+
+class FilterCompteIteror{
+  -TransactionManager& instance
+  -Compte_component& compte
+  -list<Transaction>::iterator it
+  -void goToNextTransaction()
+  -FilterCompteIterator(Compte_component& c)
+  +bool isDone()
+  +void next()
+  +Transaction& currentItem()
+  +Transaction& currentItemConst()
+}
+
+note top : Doit etre friend class de TransactionManager
+
+class FilterDateIterator{
+  -TransactionManager& instance
+  -Date& date
+  -list<Transaction>::iterator it
+  -void goToNextTransaction()
+  +bool isDone()
+  +void next()
+  +Transaction& currentItem()
+  +Transaction& currentItemConst()
+}
+
+note top : Doit etre friend class de TransactionManager
+
+class Transaction{
+  -Date& date
+  -QString id
+  -QString titre
+  -bool modifiable
+  -list<Triplet*> triplets
+  -Transaction(Date& _date, QString& _id, QString& _titre, list<Triplet*> _triplets)
+  -void figer()
+  +void detruire();
+  +Date& getDate()
+  +QString getReference()
+  +QString getTitre()
+  +list<Compte_component*> getEmetteurs()
+  +list<Compte_component*> getRecepteurs()
+  +list<Triplet*> getTriplets()
+}
+
+note top : Doit etre friend class de TransactionManager
+
+class Triplet{
+  -QString T_compte
+  -float T_debit
+  -float T_credit
+  +void setName(QString nouv);
+  +Triplet(QString compte, const float debit, const float credit);
+  +Triplet(Compte_component* compte, const float debit, const float credit);
+  +QString getCompte()
+  +float getDebit()
+  +float getCredit()
+}
+
+note bottom : Doit etre friend class de Transaction
+
+class CompteRacine <<singleton>>{
+  #{static} CompteRacine* singleton
+  #QString nomSauvegarde
+  #CompteRacine(QString nom, Compte_component* parent)
+  static CompteRacine* getRacine()
+  +float getSolde()
+  +float getSoldeLive()
+  +Compte_component& copie(float solde = 0)
+  +void bilan()
+  +void cloture()
+  +void create()
+  +void load()
+  +void save()
+  +void saveRecursive(Compte_component* compte, QDomDocument doc, QDomElement root)
+  +void saveUnder()
+}
+
+note bottom : Est la racine de tous les comptes.
+
+class ComptePassifs{
+  +ComptePassifs(QString nom, Compte_component* parent, bool estVirtuel = 1, Date& Date_de_rapprochement = dateInit)
+  +float getSolde()
+  +float getSoldeLive()
+  +Compte_component& copie(float solde = 0)
+}
+
+class CompteActifs{
+  +CompteActifs(QString nom, Compte_component* parent, bool estVirtuel = 1, Date& Date_de_rapprochement = dateInit)
+  +float getSolde()
+  +float getSoldeLive()
+  +Compte_component& copie(float solde = 0);
+}
+
+class CompteDepenses{
+  +CompteDepenses(QString nom, Compte_component* parent, bool estVirtuel = 1, Date& Date_de_rapprochement = dateInit)
+  +float getSolde()
+  +float getSoldeLive()
+  +Compte_component& copie(float solde = 0)
+}
+
+class CompteRecettes{
+  +float getSolde() const;
+  +float getSoldeLive() const;
+  +Compte_component& copie(float solde = 0);
+}
+
+class TresorieException{
+  -QString info
+  +TresorerieException(const QString& message)
+  +QString getInfo()
+}
+
+class Exception{
+  -QString info
+  +Exception(const QString& message)
+  +getInfo()
+}
+
+class Date <<datatype>>{
+  - annee : unsigned int
+  - mois : unsigned int
+  - jour : unsigned int
+  - heure : unsigned int
+  - minutes : unsigned int
+  - secondes : unsigned int
+  + getAnnee() : unsigned int const
+  + getMois() : unsigned int const
+  + getJour() : unsigned int const
+  + getHeure() : unsigned int const
+  + getMinutes() : unsigned int const
+  + getSecondes() : unsigned int const
+  + Date()
+  + Date(const unsigned int& secondes)
+  + Date(const unsigned int& annee, const unsigned int&, const unsigned int&, const unsigned int&, const unsigned int&, const unsigned int&)
+  + operator-(const &Date) : int
+}
+
+
+Compte_component "*" -- "0..1" Compte_component : > possede un pere
+Compte_component "*" -- "*" Compte_component : > possede des fils
+
+
+Compte_component <|--- CompteRacine
+
+Compte_component <|--- ComptePassifs
+Compte_component <|--- CompteActifs
+Compte_component <|--- CompteDepenses
+Compte_component <|--- CompteRecettes
+
+TransactionManager "*" o-- "*" Compte_component : emetteur
+TransactionManager "*" o-- "*" Compte_component : recepteur
+
+
+TransactionManager *- "*" Transaction
+
+Transaction *-- "2..*" Triplet
+
+
+Iterator --> TransactionManager : a
+FilterCompteIteror --> TransactionManager : a
+FilterDateIterator --> TransactionManager : a
+
+
+@enduml
